@@ -1,10 +1,7 @@
-#include <iostream>
+#include <cstdio>
 #include <algorithm>
 #include <ctime>
 #include <cstdlib>
-#include <fstream>
-#include <sstream>
-#include <string>
 #include <vector>
 
 #define UNASSIGNED 0
@@ -26,7 +23,6 @@ public:
   bool solveGrid();
   void countSoln(int &number);
   void genPuzzle();
-  void printSVG(string);
   void calculateDifficulty();
   int  branchDifficultyScore();
 };
@@ -141,16 +137,15 @@ void Sudoku::printGrid()
     for(int j=0;j<9;j++)
     {
       if(grid[i][j] == 0)
-	cout<<".";
+        putchar('.');
       else
-	cout<<grid[i][j];
-      cout<<"|";
+        printf("%d", grid[i][j]);
+      putchar('|');
     }
-    cout<<endl;
+    putchar('\n');
   }
 
-  cout<<"\nDifficulty of current sudoku(0 being easiest): "<<this->difficultyLevel;
-  cout<<endl;
+  printf("\nDifficulty of current sudoku(0 being easiest): %d\n", this->difficultyLevel);
 }
 // END: Printing the grid
 
@@ -336,41 +331,6 @@ void Sudoku::genPuzzle()
 // END: Generate puzzle
 
 
-// START: Printing into SVG file
-void Sudoku::printSVG(string path="")
-{
-  string fileName = path + "svgHead.txt";
-  ifstream file1(fileName.c_str());
-  stringstream svgHead;
-  svgHead << file1.rdbuf();
-
-  ofstream outFile("puzzle.svg");
-  outFile << svgHead.rdbuf();
-
-  for(int i=0;i<9;i++)
-  {
-    for(int j=0;j<9;j++)
-    {
-      if(this->grid[i][j]!=0)
-      {
-        int x = 50*j + 16;
-        int y = 50*i + 35;
-
-        stringstream text;
-        text<<"<text x=\""<<x<<"\" y=\""<<y<<"\" style=\"font-weight:bold\" font-size=\"30px\">"<<this->grid[i][j]<<"</text>\n";
-
-        outFile << text.rdbuf();
-      }
-    }
-  }
-
-    outFile << "<text x=\"50\" y=\"500\" style=\"font-weight:bold\" font-size=\"15px\">Difficulty Level (0 being easiest): "                  <<this->difficultyLevel<<"</text>\n";
-    outFile << "</svg>";
-
-}
-// END: Printing into SVG file
-
-
 // START: Calculate branch difficulty score
 int Sudoku::branchDifficultyScore()
 {
@@ -412,7 +372,6 @@ int Sudoku::branchDifficultyScore()
 
      if(empty.size() == 0)
      { 
-       cout<<"Hello: "<<sum<<endl;
        return sum;
      } 
 
@@ -482,12 +441,6 @@ int main(int argc, char const *argv[])
   // testing by printing the grid
   puzzle->printGrid();
 
-  // Printing the grid into SVG file
-  string rem = "sudokuGen";
-  string path = argv[0];
-  path = path.substr(0,path.size() - rem.size());
-  puzzle->printSVG(path);
-  cout<<"The above sudoku puzzle has been stored in puzzles.svg in current folder\n";
   // freeing the memory
   delete puzzle;
 
