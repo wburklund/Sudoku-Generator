@@ -1,12 +1,13 @@
-#include <cstdio>
 #include <algorithm>
 #include <ctime>
 #include <cstdlib>
 #include <vector>
+#include <emscripten/bind.h>
+#include <emscripten/val.h>
 
 #define UNASSIGNED 0
 
-using namespace std;
+using namespace emscripten;
 
 class Sudoku {
 private:
@@ -19,12 +20,10 @@ private:
 public:
   Sudoku ();
   void createSeed();
-  void printGrid();
+  unsigned char *printGrid();
   bool solveGrid();
   void countSoln(int &number);
-  void genPuzzle();
-  void calculateDifficulty();
-  int  branchDifficultyScore();
+  void genPuzzle(int givens);
 };
 
 
@@ -39,45 +38,6 @@ int genRandNum(int maxLimit)
 // START: Create seed grid
 void Sudoku::createSeed()
 {
-  /*for(int i=0;i<9;i++)
-  {
-    for(int j=0;j<9;j++)
-    {
-	this->grid[i][j] = 0;
-    }
-  }
-
-  this->grid[0][0] = 3;
-  this->grid[0][1] = 7;
-  this->grid[0][5] = 9;
-  this->grid[0][8] = 6;
-  this->grid[1][0] = 8;
-  this->grid[1][3] = 1;
-  this->grid[1][5] = 3;
-  this->grid[1][7] = 7;
-  this->grid[2][8] = 8;
-  this->grid[3][1] = 2;
-  this->grid[3][4] = 8;
-  this->grid[3][8] = 5;
-  this->grid[4][0] = 1;
-  this->grid[4][1] = 8;
-  this->grid[4][2] = 7;
-  this->grid[4][6] = 6;
-  this->grid[4][7] = 4;
-  this->grid[4][8] = 2;
-  this->grid[5][0] = 5;
-  this->grid[5][4] = 2;
-  this->grid[5][7] = 1;
-  this->grid[6][0] = 7;
-  this->grid[7][1] = 5;
-  this->grid[7][3] = 6;
-  this->grid[7][5] = 2;
-  this->grid[7][8] = 7;
-  this->grid[8][0] = 2;
-  this->grid[8][3] = 3;
-  this->grid[8][7] = 6;
-  this->grid[8][8] = 1;
-*/
   
   this->solveGrid();
   
@@ -106,7 +66,7 @@ Sudoku::Sudoku()
     this->gridPos[i] = i;
   }
 
-  random_shuffle(this->gridPos, (this->gridPos) + 81, genRandNum);
+  std::random_shuffle(this->gridPos, (this->gridPos) + 81, genRandNum);
 
   // Randomly shuffling the guessing number array
   for(int i=0;i<9;i++)
@@ -114,7 +74,7 @@ Sudoku::Sudoku()
     this->guessNum[i]=i+1;
   }
 
-  random_shuffle(this->guessNum, (this->guessNum) + 9, genRandNum);
+  std::random_shuffle(this->guessNum, (this->guessNum) + 9, genRandNum);
 
   // Initialising the grid
   for(int i=0;i<9;i++)
@@ -130,22 +90,15 @@ Sudoku::Sudoku()
 
 
 // START: Printing the grid
-void Sudoku::printGrid()
+unsigned char *Sudoku::printGrid()
 {
-  for(int i=0;i<9;i++)
-  {
-    for(int j=0;j<9;j++)
-    {
-      if(grid[i][j] == 0)
-        putchar('.');
-      else
-        printf("%d", grid[i][j]);
-      putchar('|');
+  unsigned char *gridString = new unsigned char[81];
+  for (int row = 0; row < 9; row++) {
+    for (int column = 0; column < 9; column++) {
+      gridString[9 * row + column] = grid[column][row];
     }
-    putchar('\n');
   }
-
-  printf("\nDifficulty of current sudoku(0 being easiest): %d\n", this->difficultyLevel);
+  return gridString;
 }
 // END: Printing the grid
 
@@ -270,8 +223,9 @@ void Sudoku::countSoln(int &number)
 
 
 // START: Gneerate puzzle
-void Sudoku::genPuzzle()
+void Sudoku::genPuzzle(int desiredGivens)
 {
+  int currentGivens = 81;
   for(int i=0;i<81;i++)
   {
     int x = (this->gridPos[i])/9;
@@ -286,143 +240,24 @@ void Sudoku::genPuzzle()
     {
       this->grid[x][y] = temp;
     }
-  }
-
-  /*for(int i=0;i<9;i++)
-  {
-    for(int j=0;j<9;j++)
-    {
-	this->grid[i][j] = 0;
+    else {
+      currentGivens--;
+      // If we've reached the desired number of given cells, stop removing cells
+      if (currentGivens <= desiredGivens) {
+        return;
+      }
     }
   }
-
-  this->grid[0][0] = 3;
-  this->grid[0][1] = 7;
-  this->grid[0][5] = 9;
-  this->grid[0][8] = 6;
-  this->grid[1][0] = 8;
-  this->grid[1][3] = 1;
-  this->grid[1][5] = 3;
-  this->grid[1][7] = 7;
-  this->grid[2][8] = 8;
-  this->grid[3][1] = 2;
-  this->grid[3][4] = 8;
-  this->grid[3][8] = 5;
-  this->grid[4][0] = 1;
-  this->grid[4][1] = 8;
-  this->grid[4][2] = 7;
-  this->grid[4][6] = 6;
-  this->grid[4][7] = 4;
-  this->grid[4][8] = 2;
-  this->grid[5][0] = 5;
-  this->grid[5][4] = 2;
-  this->grid[5][7] = 1;
-  this->grid[6][0] = 7;
-  this->grid[7][1] = 5;
-  this->grid[7][3] = 6;
-  this->grid[7][5] = 2;
-  this->grid[7][8] = 7;
-  this->grid[8][0] = 2;
-  this->grid[8][3] = 3;
-  this->grid[8][7] = 6;
-  this->grid[8][8] = 1;
-  */ 
+  // We've reached the end of puzzle generation, but no more cells can be removed
+  // while keeping a unique solution. Try again with a new seed.
+  createSeed();
+  genPuzzle(desiredGivens);
+  return;
 }
 // END: Generate puzzle
 
 
-// START: Calculate branch difficulty score
-int Sudoku::branchDifficultyScore()
-{
-   int emptyPositions = -1;
-   int tempGrid[9][9];
-   int sum=0;
-
-   for(int i=0;i<9;i++)
-  {
-    for(int j=0;j<9;j++)
-    {
-      tempGrid[i][j] = this->grid[i][j];
-    }
-  }
-
-   while(emptyPositions!=0)
-   {
-     vector<vector<int> > empty; 
-
-     for(int i=0;i<81;i++)
-     {
-        if(tempGrid[(int)(i/9)][(int)(i%9)] == 0)
-        {
-       	  vector<int> temp;
-	  temp.push_back(i);
-	
-	  for(int num=1;num<=9;num++)
-	  {
-	    if(isSafe(tempGrid,i/9,i%9,num))
-	    {
-	      temp.push_back(num);
-	    }
-	  }
-
-	  empty.push_back(temp);
-        }
-      
-     }
-
-     if(empty.size() == 0)
-     { 
-       return sum;
-     } 
-
-     int minIndex = 0;
-
-     int check = empty.size();
-     for(int i=0;i<check;i++)
-     {
-       if(empty[i].size() < empty[minIndex].size())
-	  minIndex = i;
-     }
-
-     int branchFactor=empty[minIndex].size();
-     int rowIndex = empty[minIndex][0]/9;
-     int colIndex = empty[minIndex][0]%9;
-
-     tempGrid[rowIndex][colIndex] = this->solnGrid[rowIndex][colIndex];
-     sum = sum + ((branchFactor-2) * (branchFactor-2)) ;
-
-     emptyPositions = empty.size() - 1;
-   }
-
-   return sum;
-
-}
-// END: Finish branch difficulty score
-
-
-// START: Calculate difficulty level of current grid
-void Sudoku::calculateDifficulty()
-{
-  int B = branchDifficultyScore();
-  int emptyCells = 0;
-
-  for(int i=0;i<9;i++)
-  {
-    for(int j=0;j<9;j++)
-    {
-	if(this->grid[i][j] == 0)
-	   emptyCells++;
-    }
-  } 
-
-  this->difficultyLevel = B*100 + emptyCells;
-}
-// END: calculating difficulty level
-
-
-// START: The main function
-int main(int argc, char const *argv[])
-{
+val eGenerate(int givens) {
   // Initialising seed for random number generation
   srand(time(NULL));
 
@@ -433,17 +268,18 @@ int main(int argc, char const *argv[])
   puzzle->createSeed();
 
   // Generating the puzzle
-  puzzle->genPuzzle();
+  puzzle->genPuzzle(givens);
 
-  // Calculating difficulty of puzzle
-  puzzle->calculateDifficulty();
-
-  // testing by printing the grid
-  puzzle->printGrid();
-
-  // freeing the memory
+  // Convert the grid to a C string
+  unsigned char *gridString = puzzle->printGrid();
+  // Clear puzzle memory
   delete puzzle;
-
-  return 0;
+  // Returning the grid string without deallocating this memory will cause a memory leak.
+  // However, the amount of leaked memory should be unnoticeable.
+  // TODO: fix memory leak
+  return val(typed_memory_view(81, gridString));
 }
-// END: The main function
+
+EMSCRIPTEN_BINDINGS(sudoku) {
+    function("generate", &eGenerate);
+};
